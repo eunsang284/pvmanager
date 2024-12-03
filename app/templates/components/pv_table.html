@@ -1,0 +1,57 @@
+<table class="pv-table">
+    <thead>
+        <tr>
+            <th rowspan="2" class="sortable" data-sort="set_pv_name">Set PV Name <span class="sort-icon">↕</span></th>
+            <th rowspan="2" class="sortable" data-sort="distance">Distance (m) <span class="sort-icon">↕</span></th>
+            <th colspan="3" class="set-value-group">Set Value Control</th>
+            <th colspan="3" class="readback-group">Readback Control</th>
+            <th rowspan="2" class="sortable" data-sort="error_rate">Error Rate (%) <span class="sort-icon">↕</span></th>
+            <th colspan="4" class="error-limits-header">Error Limits</th>
+            <th rowspan="2" class="sortable" data-sort="mode">Mode <span class="sort-icon">↕</span></th>
+            <th rowspan="2">Actions</th>
+        </tr>
+        <tr>
+            <!-- Set Value Control 그룹 -->
+            <th class="sortable" data-sort="set_value">Target</th>
+            <th>Current</th>
+            <th>Status</th>
+            <!-- Readback Control 그룹 -->
+            <th class="sortable" data-sort="readback_pv_name">RB PV</th>
+            <th>RB Value</th>
+            <th>State</th>
+            <!-- Error Limits 그룹 -->
+            <th class="sortable" data-sort="HH">HH <span class="sort-icon">↕</span></th>
+            <th class="sortable" data-sort="High">High <span class="sort-icon">↕</span></th>
+            <th class="sortable" data-sort="Low">Low <span class="sort-icon">↕</span></th>
+            <th class="sortable" data-sort="LL">LL <span class="sort-icon">↕</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pv in pv_data %}
+        <tr data-pv-id="{{ pv.id }}" data-mode="{{ pv.mode }}">
+            <td class="editable" data-field="set_pv_name">{{ pv.set_pv_name }}</td>
+            <td class="editable" data-field="distance">{{ pv.distance or '-' }}</td>
+            <!-- Set Value Control -->
+            <td class="editable" data-field="set_value">{{ pv.set_value }}</td>
+            <td class="monitor-cell" data-field="set_value_current">-</td>
+            <td class="status-cell" data-field="set_status">-</td>
+            <!-- Readback Control -->
+            <td class="editable" data-field="readback_pv_name">{{ pv.readback_pv_name }}</td>
+            <td class="monitor-cell" data-field="rb_value">-</td>
+            <td class="state-cell" data-field="state">-</td>
+            <!-- Error Rate & Limits -->
+            <td class="editable" data-field="error_rate">{{ pv.error_rate }}</td>
+            <td class="editable" data-field="HH">{{ pv.HH }}</td>
+            <td class="editable" data-field="High">{{ pv.High }}</td>
+            <td class="editable" data-field="Low">{{ pv.Low }}</td>
+            <td class="editable" data-field="LL">{{ pv.LL }}</td>
+            <td class="editable" data-field="mode">{{ pv.mode }}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="button delete" onclick="PVManager.deletePV({{ pv.id }})">Delete</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

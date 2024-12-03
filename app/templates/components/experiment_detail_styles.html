@@ -1,0 +1,550 @@
+<style>
+    /* 기본 레이아웃 */
+    .experiment-detail {
+        max-width: 1800px;
+        margin: 20px auto;
+        padding: 0 20px;
+    }
+
+    /* 헤더 액션 */
+    .header-actions {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .back-button {
+        background-color: #666;
+        color: white;
+        text-decoration: none;
+    }
+
+    /* 실험 정보 */
+    .experiment-info {
+        background-color: white;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .experiment-info h1 {
+        margin: 0 0 10px 0;
+        color: #333;
+        font-size: 24px;
+    }
+
+    /* 새로운 실험 속성 스타일 */
+    .experiment-properties {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .property-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .property-item {
+        background-color: white;
+        padding: 15px;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .property-item label {
+        font-weight: bold;
+        color: #495057;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .property-item p {
+        margin: 0;
+        color: #212529;
+        word-break: break-word;
+    }
+
+    .property-item:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .property-item:last-child {
+        grid-column: 1 / -1;
+    }
+
+    /* Save Changes 컨테이너 */
+    .save-changes-container {
+        display: flex;
+        justify-content: flex-start;
+        margin: 20px 0;
+        padding-left: 15px;
+    }
+
+    /* PV 추가 폼 */
+    .add-pv-form {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 15px;
+        background-color: white;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .add-pv-form-row {
+        display: grid;
+        grid-template-columns: repeat(9, 1fr) 100px;
+        gap: 10px;
+        align-items: end;
+    }
+
+    .add-pv-form input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .add-pv-form label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    /* PV 테이블 */
+    .pv-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .pv-table th, .pv-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border: 1px solid #ddd;
+        font-size: 14px;
+    }
+
+    .pv-table th {
+        background-color: #f4f4f4;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .error-limits-header {
+        text-align: center;
+        border-bottom: none !important;
+    }
+
+    .error-limits-subheader th {
+        background-color: #f8f8f8;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    /* 편집 가능한 셀 */
+    .editable {
+        cursor: pointer;
+        position: relative;
+    }
+
+    .editable:hover {
+        background-color: #f0f0f0;
+    }
+
+    .editable:hover::after {
+        content: '✎';
+        position: absolute;
+        right: 5px;
+        color: #666;
+    }
+
+    .editing {
+        padding: 0 !important;
+    }
+
+    .editing input {
+        width: 100%;
+        height: 100%;
+        padding: 12px 15px;
+        border: 2px solid #007bff;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: inherit;
+    }
+
+    .modified {
+        background-color: #e8f4f8;
+    }
+
+    /* 버튼 스타일 */
+    .button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+    .save-all-button {
+        background-color: #28a745;
+        color: white;
+        margin-right: auto;
+    }
+
+    .add-pv-button-inline {
+        background-color: #4CAF50;
+        color: white;
+        height: 35px;
+        margin-top: 21px;
+    }
+
+    .delete {
+        background-color: #dc3545;
+        color: white;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    /* 액션 버튼 컨테이너 */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+    .sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    }
+
+    .sortable:hover {
+        background-color: #e9ecef;
+    }
+
+    .sort-icon {
+        font-size: 0.8em;
+        margin-left: 5px;
+        opacity: 0.5;
+    }
+
+    .sorting-asc .sort-icon {
+        opacity: 1;
+        content: "↑";
+    }
+
+    .sorting-desc .sort-icon {
+        opacity: 1;
+        content: "↓";
+    }
+    .save-as-button {
+    background-color: #28a745;
+    color: white;
+    margin-left: 10px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 5px;
+    width: 50%;
+    max-width: 500px;
+}
+
+.modal-body {
+    margin: 20px 0;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.cancel-button {
+    background-color: #6c757d;
+    color: white;
+}
+
+.save-button {
+    background-color: #28a745;
+    color: white;
+}
+.header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .add-button {
+        background-color: #28a745;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .add-button:hover {
+        background-color: #218838;
+    }
+
+    .start-experiment-button {
+    background-color: #28a745;
+    color: white;
+    margin-left: 10px;
+}
+
+.pv-status {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-pending {
+    background-color: #ffd700;
+    color: #000;
+}
+
+.status-ok {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-error {
+    background-color: #dc3545;
+    color: white;
+}   
+/* 실험 상태 메시지 스타일 */
+.experiment-status-message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+/* 실험 제어 버튼 스타일 */
+.stop-experiment-button {
+    background-color: #dc3545;
+    color: white;
+}
+
+.stop-experiment-button:hover {
+    background-color: #c82333;
+}
+
+/* 실험 실행 중일 때 다른 실험 시작 버튼 비활성화 */
+.start-experiment-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+    /* PV 값 업데이트 효과 */
+    .value-updated {
+        animation: highlight 0.5s ease-out;
+    }
+
+    @keyframes highlight {
+        0% {
+            background-color: #4CAF50;
+            color: white;
+        }
+        100% {
+            background-color: transparent;
+            color: inherit;
+        }
+    }
+
+    /* 상태 스타일 */
+    .status-ok {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        padding: 2px 6px;
+        border-radius: 3px;
+    }
+
+    .status-error {
+        background-color: #ffebee;
+        color: #c62828;
+        padding: 2px 6px;
+        border-radius: 3px;
+    }
+    .editable-cell {
+    position: relative;
+    cursor: pointer;
+    padding-right: 20px; /* 편집 아이콘을 위한 공간 */
+}
+
+.editable-cell:hover {
+    background-color: #f5f5f5;
+}
+
+.editable-cell.editing {
+    padding: 0;
+    background-color: #fff;
+}
+
+.editable-cell input {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #007bff;
+    border-radius: 3px;
+    outline: none;
+}
+
+.editable-cell input:focus {
+    box-shadow: 0 0 3px rgba(0,123,255,0.5);
+}
+
+.edit-icon {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.editable-cell:hover .edit-icon {
+    opacity: 1;
+}
+    /* 모니터링 셀 스타일 */
+    .monitor-cell {
+        font-family: monospace;
+        background-color: #f5f5f5;
+        text-align: right;
+        padding: 4px 8px;
+    }
+
+    /* 상태 셀 스타일 */
+    .status-cell, .state-cell {
+        text-align: center;
+        font-weight: bold;
+        padding: 4px 8px;
+    }
+
+    .status-ok {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .status-error {
+        background-color: #ffebee;
+        color: #c62828;
+    }
+
+    /* 그룹 헤더 스타일 */
+    .set-value-group, .readback-group {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    /* 값 업데이트 효과 */
+    .value-updated {
+        animation: highlight 0.5s ease-out;
+    }
+
+    @keyframes highlight {
+        0% { background-color: #b3e5fc; }
+        100% { background-color: #f5f5f5; }
+    }
+
+    /* 테이블 레이아웃 개선 */
+    .pv-table th, .pv-table td {
+        white-space: nowrap;
+        padding: 8px;
+    }
+
+    .monitor-cell, .status-cell, .state-cell {
+        min-width: 80px;
+    }
+    
+    /* 기존 스타일 유지 */
+    .modified {
+        background-color: #fff3e0;
+    }
+
+    .save-all-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+
+    .save-all-button:hover {
+        background-color: #45a049;
+    }
+
+    .save-changes-container {
+        margin: 20px 0;
+        text-align: right;
+    }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 4px;
+        color: white;
+        z-index: 1000;
+        animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+    }
+
+    @keyframes slideOut {
+        from { transform: translateX(0); }
+        to { transform: translateX(100%); }
+    }
+ 
+
+.modified {
+    background-color: #fff3e0;
+}
+    /* 모니터링 중인 값 스타일 */
+    [data-field="set_value_current"],
+    [data-field="rb_value"] {
+        font-family: monospace;
+        background-color: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 3px;
+    }
+</style>

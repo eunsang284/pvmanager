@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Add New PV{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <h1>Add New PV</h1>
+    <form method="POST">
+        <div class="form-group">
+            <label>Experiment ID:</label>
+            <input type="number" name="experiment_id" value="{{ experiment_id }}" readonly>
+        </div>
+        <div class="form-group">
+            <label>Set PV Name:</label>
+            <input type="text" name="set_pv_name" required>
+        </div>
+        <div class="form-group">
+            <label>Set Value:</label>
+            <input type="number" step="any" name="set_value">
+        </div>
+        <div class="form-group">
+            <label>Readback PV Name:</label>
+            <input type="text" name="readback_pv_name">
+        </div>
+        <div class="form-group">
+            <label>HH:</label>
+            <input type="number" step="any" name="HH">
+        </div>
+        <div class="form-group">
+            <label>High:</label>
+            <input type="number" step="any" name="High">
+        </div>
+        <div class="form-group">
+            <label>Low:</label>
+            <input type="number" step="any" name="Low">
+        </div>
+        <div class="form-group">
+            <label>LL:</label>
+            <input type="number" step="any" name="LL">
+        </div>
+        <div class="form-group">
+            <label>Error Rate:</label>
+            <input type="number" step="any" name="error_rate">
+        </div>
+        <div class="form-group">
+            <label>Mode:</label>
+            <input type="number" name="mode">
+        </div>
+        <button type="submit" class="button">Add PV</button>
+        <button type="button" class="button" onclick="location.href='{{ url_for('api.pv_list') }}'">Cancel</button>
+    </form>
+</div>
+{% endblock content %}

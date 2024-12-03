@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Experiment Detail{% endblock title %}
+
+{% block content %}
+<!-- 스타일 분리 -->
+{% include 'components/experiment_detail_styles.html' %}
+
+<div class="experiment-detail">
+    <div class="header-actions">
+        <button class="button back-button" onclick="location.href='{{ url_for('api.experiment_list') }}'">
+            Back to Experiments
+        </button>
+        <button class="button save-as-button" onclick="ExperimentManager.showSaveAsDialog()">
+            Save As New Experiment
+        </button>
+        <!-- 실험 제어 버튼 -->
+        <button id="startExperimentBtn" class="button start-experiment-button">Start Experiment</button>
+        <button id="stopExperimentBtn" class="button stop-experiment-button" style="display: none;">Stop Experiment</button>
+    </div>
+
+    <!-- 실험 상태 메시지 -->
+    <div id="experimentStatus" class="experiment-status-message"></div>
+
+    <div class="experiment-info">
+        <h1>Experiment #{{ experiment.id }}</h1>
+        <div class="experiment-properties">
+            <div class="property-group">
+                <div class="property-item">
+                    <label>Description:</label>
+                    <p>{{ experiment.description }}</p>
+                </div>
+                <div class="property-item">
+                    <label>Source Mode:</label>
+                    <p>{{ experiment.source_mode or '-' }}</p>
+                </div>
+                <div class="property-item">
+                    <label>Beam Mode:</label>
+                    <p>{{ experiment.beam_mode or '-' }}</p>
+                </div>
+                <div class="property-item">
+                    <label>Machine Mode:</label>
+                    <p>{{ experiment.machine_mode or '-' }}</p>
+                </div>
+                <div class="property-item">
+                    <label>Ion Type:</label>
+                    <p>{{ experiment.ion_type or '-' }}</p>
+                </div>
+                <div class="property-item">
+                    <label>Charge State:</label>
+                    <p>{{ experiment.charge_state or '-' }}</p>
+                </div>
+                <div class="property-item">
+                    <label>Beam Energy:</label>
+                    <p>{{ experiment.beam_energy or '-' }}</p>
+                </div>
+                <div class="property-item">
+                    <label>Note:</label>
+                    <p>{{ experiment.note or '-' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-changes-container">
+        <button class="button save-all-button" onclick="saveAllChanges()" style="display: none;">Save All Changes</button>
+    </div>
+
+    <!-- PV 추가 폼 -->
+    <div class="add-pv-form">
+        <div class="add-pv-form-row">
+            <div>
+                <label>Set PV Name</label>
+                <input type="text" id="new-set-pv-name" required>
+            </div>
+            <div>
+                <label>Distance (m)</label>
+                <input type="number" id="new-distance" step="0.001" placeholder="Enter distance...">
+            </div>
+            <div>
+                <label>Set Value</label>
+                <input type="number" id="new-set-value" step="any">
+            </div>
+            <div>
+                <label>Readback PV Name</label>
+                <input type="text" id="new-readback-pv-name">
+            </div>
+            <div>
+                <label>Error Rate (%)</label>
+                <input type="number" id="new-error-rate" step="0.1">
+            </div>
+            <div>
+                <label>HH</label>
+                <input type="number" id="new-HH" step="any">
+            </div>
+            <div>
+                <label>High</label>
+                <input type="number" id="new-High" step="any">
+            </div>
+            <div>
+                <label>Low</label>
+                <input type="number" id="new-Low" step="any">
+            </div>
+            <div>
+                <label>LL</label>
+                <input type="number" id="new-LL" step="any">
+            </div>
+            <div>
+                <label>Mode</label>
+                <input type="number" id="new-mode" step="1">
+            </div>
+            <button class="button add-pv-button-inline">Add PV</button>
+        </div>
+    </div>
+
+    <!-- Save As 대화상자 -->
+    <div id="saveAsDialog" class="modal">
+        <div class="modal-content">
+            <h2>Save As New Experiment</h2>
+            <div class="modal-body">
+                <label for="newDescription">Description:</label>
+                <textarea id="newDescription" rows="3" class="modal-input">{{ experiment.description }}</textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="button cancel-button" onclick="ExperimentManager.closeSaveAsDialog()">Cancel</button>
+                <button class="button save-button" onclick="ExperimentManager.saveAsNewExperiment()">Save</button>
+                <button class="save-all-button" style="display: none;" onclick="PVManager.saveAllChanges()">Save All Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <h2>PV List for this Experiment</h2>
+    {% include 'components/pv_table.html' %}
+</div>
+
+<!-- 스크립트 분리 -->
+{% include 'components/experiment_detail_scripts.html' %}
+
+<!-- ExperimentManager 스크립트 추가 -->
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/experiment_manager.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        ExperimentManager.init({{ experiment.id }});
+        
+        // 편집 가능한 셀에 대한 클릭 이벤트 추가
+        document.querySelectorAll('.editable').forEach(cell => {
+            cell.addEventListener('click', function() {
+                if (!ExperimentManager.isRunning) {
+                    PVManager.makeEditable(this);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock content %}

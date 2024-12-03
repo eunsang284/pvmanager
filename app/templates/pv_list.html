@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Add New PV{% endblock title %}
+
+{% block content %}
+<body>
+    <h1>PV Dataset List</h1>
+    
+    <button class="button" onclick="location.href='{{ url_for('api.add_pv') }}'">Add New PV</button>
+    
+    <table>
+        <tr>
+            <th>Experiment ID</th>
+            <th>Set PV Name</th>
+            <th>Set Value</th>
+            <th>Readback PV</th>
+            <th>State</th>
+            <th>Error Limits</th>
+            <th>Mode</th>
+            <th>Actions</th>
+        </tr>
+        {% for pv in pv_data %}
+        <tr>
+            <td>{{ pv.experiment_id }}</td>
+            <td>{{ pv.set_pv_name }}</td>
+            <td>{{ pv.set_value }}</td>
+            <td>{{ pv.readback_pv_name }}</td>
+            <td>{{ pv.state }}</td>
+            <td>
+                HH: {{ pv.HH }}<br>
+                High: {{ pv.High }}<br>
+                Low: {{ pv.Low }}<br>
+                LL: {{ pv.LL }}
+            </td>
+            <td>{{ pv.mode }}</td>
+            <td>
+                <button class="button edit" onclick="location.href='{{ url_for('api.edit_pv', id=pv.id) }}'">Edit</button>
+                <form action="{{ url_for('api.delete_pv', id=pv.id) }}" method="POST" style="display: inline;">
+                    <button class="button delete" onclick="return confirm('Are you sure?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endblock content %}

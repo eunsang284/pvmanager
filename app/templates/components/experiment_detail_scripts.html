@@ -1,0 +1,275 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 편집 가능한 셀에 대한 클릭 이벤트 추가
+    document.querySelectorAll('.editable').forEach(cell => {
+        cell.addEventListener('click', function() {
+            if (!ExperimentManager.isRunning) {
+                PVManager.makeEditable(this);
+            }
+        });
+    });
+});
+
+const ExperimentManager = {
+    isRunning: false,
+    monitoringInterval: null,
+    experimentId: null,
+
+    init(experimentId) {
+        this.experimentId = experimentId;
+        this.checkExperimentStatus();
+    },
+
+    async checkExperimentStatus() {
+        try {
+            const response = await fetch('/app2/experiments/status');
+            const data = await response.json();
+            
+            if (data.running_experiment === this.experimentId) {
+                this.isRunning = true;
+                this.updateUI(true);
+                this.startMonitoring();
+                this.updateStatusHeader(`Experiment #${this.experimentId} is running`);
+            } else if (data.running_experiment !== null) {
+                document.getElementById('startExperimentBtn').disabled = true;
+                this.updateStatusHeader(`Another experiment (#${data.running_experiment}) is currently running`);
+            } else {
+                this.isRunning = false;
+                this.updateUI(false);
+                this.updateStatusHeader('No experiment running');
+            }
+        } catch (error) {
+            console.error('Error checking experiment status:', error);
+            PVManager.showNotification('Error checking experiment status', 'error');
+        }
+    },
+
+    updateStatusHeader(message) {
+        const statusElement = document.querySelector('.status-value');
+        if (statusElement) {
+            statusElement.textContent = message;
+        }
+    },
+
+    async startExperiment() {
+        try {
+            const response = await fetch(`/app2/experiments/${this.experimentId}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                this.isRunning = true;
+                this.updateUI(true);
+                this.startMonitoring();
+                this.updateStatusHeader(`Experiment #${this.experimentId} is running`);
+                PVManager.showNotification('Experiment started successfully', 'success');
+            } else {
+                throw new Error(data.message || 'Failed to start experiment');
+            }
+        } catch (error) {
+            console.error('Error starting experiment:', error);
+            PVManager.showNotification(error.message, 'error');
+        }
+    },
+
+    async stopExperiment() {
+        try {
+            const response = await fetch(`/app2/experiments/${this.experimentId}/stop`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                this.isRunning = false;
+                this.updateUI(false);
+                this.stopMonitoring();
+                this.updateStatusHeader('No experiment running');
+                PVManager.showNotification('Experiment stopped successfully', 'success');
+            } else {
+                throw new Error(data.message || 'Failed to stop experiment');
+            }
+        } catch (error) {
+            console.error('Error stopping experiment:', error);
+            PVManager.showNotification(error.message, 'error');
+        }
+    },
+
+    updateUI(isRunning) {
+        const startBtn = document.getElementById('startExperimentBtn');
+        const stopBtn = document.getElementById('stopExperimentBtn');
+
+        if (startBtn && stopBtn) {
+            startBtn.style.display = isRunning ? 'none' : 'inline-block';
+            stopBtn.style.display = isRunning ? 'inline-block' : 'none';
+        }
+
+        document.querySelectorAll('.editable').forEach(cell => {
+            cell.style.pointerEvents = isRunning ? 'none' : 'auto';
+            cell.style.opacity = isRunning ? '0.7' : '1';
+        });
+
+        const saveAllButton = document.querySelector('.save-all-button');
+        if (saveAllButton) {
+            saveAllButton.style.display = isRunning ? 'none' : 
+                (document.querySelectorAll('.modified').length > 0 ? 'inline-block' : 'none');
+        }
+
+        if (!isRunning) {
+            document.querySelectorAll('.monitor-cell, .status-cell, .state-cell').forEach(cell => {
+                cell.textContent = '-';
+                cell.className = cell.className.split(' ')[0]; // 기본 클래스만 유지
+            });
+        }
+    },
+
+    startMonitoring() {
+        if (this.monitoringInterval) return;
+
+        this.monitoringInterval = setInterval(async () => {
+            const pvRows = document.querySelectorAll('tr[data-pv-id]');
+            
+            for (const row of pvRows) {
+                const pvId = row.dataset.pvId;
+                const mode = parseInt(row.dataset.mode);
+                const setPvName = row.querySelector('[data-field="set_pv_name"]').textContent;
+                const setValue = parseFloat(row.querySelector('[data-field="set_value"]').textContent);
+                const readbackPvName = row.querySelector('[data-field="readback_pv_name"]').textContent;
+
+                try {
+                    // Set PV 값 설정 및 현재 값 확인
+                    const setResponse = await fetch('/app2/pv/check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            pv_name: setPvName,
+                            expected_value: setValue,
+                            pv_id: pvId 
+                        })
+                    });
+
+                    if (setResponse.ok) {
+                        const setData = await setResponse.json();
+                        this.updateMonitoredValue(row, 'set_value_current', setData.current_value);
+                        this.updateSetStatus(row, setData.matches);
+                    }
+
+                    // Readback PV 확인
+                    if (readbackPvName) {
+                        const rbResponse = await fetch('/app2/pv/check', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                pv_name: readbackPvName,
+                                expected_value: setValue,
+                                pv_id: pvId 
+                            })
+                        });
+
+                        if (rbResponse.ok) {
+                            const rbData = await rbResponse.json();
+                            this.updateMonitoredValue(row, 'rb_value', rbData.current_value);
+                            this.checkErrorStatus(row, rbData.current_value, mode);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error monitoring PV ${setPvName}:`, error);
+                    this.updateSetStatus(row, false);
+                }
+            }
+        }, 1000);
+    },
+
+    updateMonitoredValue(row, field, value) {
+        const cell = row.querySelector(`[data-field="${field}"]`);
+        if (cell) {
+            cell.textContent = value.toFixed(4);
+            cell.classList.add('value-updated');
+            setTimeout(() => cell.classList.remove('value-updated'), 500);
+        }
+    },
+
+    updateSetStatus(row, matches) {
+        const statusCell = row.querySelector('[data-field="set_status"]');
+        if (statusCell) {
+            statusCell.textContent = matches ? 'OK' : 'Error';
+            statusCell.className = `status-cell ${matches ? 'status-ok' : 'status-error'}`;
+        }
+    },
+
+    checkErrorStatus(row, currentValue, mode) {
+        const stateCell = row.querySelector('[data-field="state"]');
+        if (!stateCell) return;
+
+        let status = 'OK';
+        
+        if (mode === 1) {
+            const HH = parseFloat(row.querySelector('[data-field="HH"]').textContent);
+            const High = parseFloat(row.querySelector('[data-field="High"]').textContent);
+            const Low = parseFloat(row.querySelector('[data-field="Low"]').textContent);
+            const LL = parseFloat(row.querySelector('[data-field="LL"]').textContent);
+
+            if (currentValue >= HH || currentValue <= LL) {
+                status = 'Error';
+            } else if (currentValue >= High || currentValue <= Low) {
+                status = 'Warning';
+            }
+        } else if (mode === 2) {
+            const errorRate = parseFloat(row.querySelector('[data-field="error_rate"]').textContent);
+            const setValue = parseFloat(row.querySelector('[data-field="set_value"]').textContent);
+            const difference = Math.abs(currentValue - setValue);
+            const actualErrorRate = (difference / setValue) * 100;
+
+            if (actualErrorRate > errorRate) {
+                status = 'Error';
+            }
+        }
+
+        stateCell.textContent = status;
+        stateCell.className = `state-cell status-${status.toLowerCase()}`;
+    },
+
+    stopMonitoring() {
+        if (this.monitoringInterval) {
+            clearInterval(this.monitoringInterval);
+            this.monitoringInterval = null;
+        }
+    }
+};
+
+// 이벤트 리스너 설정
+document.addEventListener('DOMContentLoaded', function() {
+    // 버튼 이벤트 리스너
+    const startBtn = document.getElementById('startExperimentBtn');
+    const stopBtn = document.getElementById('stopExperimentBtn');
+
+    if (startBtn) {
+        startBtn.addEventListener('click', () => ExperimentManager.startExperiment());
+    }
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => ExperimentManager.stopExperiment());
+    }
+
+    // 편집 가능한 셀에 대한 클릭 이벤트 추가
+    document.querySelectorAll('.editable').forEach(cell => {
+        cell.addEventListener('click', function() {
+            if (!ExperimentManager.isRunning) {
+                PVManager.makeEditable(this);
+            }
+        });
+    });
+
+    // ExperimentManager 초기화
+    const experimentId = {{ experiment.id }};
+    ExperimentManager.init(experimentId);
+});
+
+</script>

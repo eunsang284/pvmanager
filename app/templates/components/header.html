@@ -1,0 +1,177 @@
+<style>
+    /* Header specific styles */
+    .main-header {
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 0.5rem 0;
+    }
+
+    .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        height: 50px;
+    }
+
+    /* Logo styles */
+    .logos-left, .logos-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .logo-link {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+    }
+
+    .logo-image {
+        height: 40px;
+        width: auto;
+        transition: opacity 0.3s ease;
+    }
+
+    .logo-image:hover {
+        opacity: 0.8;
+    }
+
+    /* Control Team 로고와 텍스트 스타일 */
+    .control-team-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        position: relative;  /* 위치 지정을 위해 추가 */
+    }
+
+    .control-team-text {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #00a2cc;
+        white-space: nowrap;
+        position: relative;  /* 위치 지정을 위해 추가 */
+        top: 5px;  /* 텍스트를 위로 올림 */
+    }
+
+    .control-team-logo {
+        height: 40px;
+        width: auto;
+        margin-top: 10px;  /* 로고를 아래로 내림 */
+        transition: opacity 0.3s ease;
+    }
+
+    .control-team-container:hover .control-team-text {
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+
+    /* nav-links 스타일 수정 */
+    .nav-links-container {
+        width: 100%;
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+        margin-top: 10px;  /* 헤더와의 간격 */
+    }
+
+    .nav-links {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 10px 20px;
+        list-style: none;
+        display: flex;
+        gap: 20px;
+    }
+
+    .nav-links a {
+        color: #333;
+        text-decoration: none;
+        padding: 8px 15px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border-radius: 4px;
+    }
+
+    .nav-links a:hover {
+        color: #007bff;
+        background-color: #e9ecef;
+    }
+
+    .nav-links a.active {
+        color: #007bff;
+        background-color: #e9ecef;
+    }
+    /* 실험 상태 표시 스타일 수정 */
+    .experiment-status-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 10px 20px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .experiment-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.1rem;
+    }
+
+    .status-label {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .status-value {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    /* 실험이 실행 중이 아닐 때는 숨김 */
+    .experiment-status-container:empty {
+        display: none;
+    }
+</style>
+
+<!-- HTML 부분은 동일하게 유지 -->
+
+<header class="main-header">
+    <nav class="nav-container">
+        <div class="logos-left">
+            <a href="https://raon.ibs.re.kr/" target="_blank" class="logo-link">
+                <img src="{{ url_for('static', filename='images/raonlogo.svg') }}" alt="RAON Logo" class="logo-image">
+            </a>
+            <a href="{{ url_for('api.experiment_list') }}" class="control-team-container">
+                <img src="{{ url_for('static', filename='images/ControlTeam_Logo.svg') }}" 
+                     alt="Control Team Logo" 
+                     class="control-team-logo">
+                <span class="control-team-text">PV Manager</span>
+            </a>
+            <!-- 실험 상태 표시 추가 -->
+     
+        </div>
+        <div class="logos-right">
+            <a href="https://iris.ibs.re.kr/" target="_blank" class="logo-link">
+                <img src="{{ url_for('static', filename='images/irislogo.svg') }}" alt="IRIS Logo" class="logo-image">
+            </a>
+        </div>
+    </nav>
+</header>
+
+<!-- 네비게이션 링크를 헤더 밖으로 이동 -->
+<div class="nav-links-container">
+    <ul class="nav-links">
+        <li><a href="{{ url_for('api.experiment_list') }}" {% if request.endpoint == 'api.experiment_list' %}class="active"{% endif %}>PV Manager Home</a></li>
+    </ul>
+</div>
+
+<div class="experiment-status-container">
+    <div id="experiment-status" class="experiment-status">
+        <span class="status-label">Current Status:</span>
+        <span class="status-value">No experiment running</span>
+    </div>
+</div>

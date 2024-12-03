@@ -1,0 +1,14 @@
+<div class="add-pv-form"></div>
+    <div class="add-pv-form-row">
+        {% for field in ['set_pv_name', 'set_value', 'readback_pv_name', 'HH', 'High', 'Low', 'LL', 'error_rate', 'mode'] %}
+        <div>
+            <label>{{ field|replace('_', ' ')|title }}</label>
+            <input type="{{ 'number' if field in ['set_value', 'HH', 'High', 'Low', 'LL', 'error_rate', 'mode'] else 'text' }}"
+                   id="new-{{ field|replace('_', '-') }}"
+                   step="{{ 'any' if field != 'mode' else '1' }}"
+                   {{ 'required' if field == 'set_pv_name' }}>
+        </div>
+        {% endfor %}
+        <button class="button add-pv-button-inline" onclick="addNewPV()">Add PV</button>
+    </div>
+</div>
