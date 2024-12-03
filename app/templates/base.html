@@ -18,6 +18,8 @@
     {% include 'components/footer.html' %}
     
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/experiment_manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pv_manager.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

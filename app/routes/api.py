@@ -6,6 +6,7 @@ from datetime import datetime
 import pytz
 from epics import caget, caput
 import redis
+from sqlalchemy import text
 
 
 # 전역 변수로 실험 상태 관리
@@ -15,6 +16,8 @@ running_experiment = None
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
 @bp.route('/')
+@bp.route('/app2')
+@bp.route('/app2/')
 def index():
     return redirect(url_for('api.experiment_list'))
 
@@ -27,6 +30,17 @@ def experiment_list():
 def experiment_detail(exp_id):
     experiment = Experiment.query.get_or_404(exp_id)
     pv_data = PVDataset.query.filter_by(experiment_id=exp_id).all()
+    
+    # 모델의 모든 속성 출력
+    print("\n=== Model Attributes ===")
+    print(PVDataset.__table__.columns.keys())
+    
+    # 실제 데이터의 모든 속성 출력
+    print("\n=== Data Attributes ===")
+    for pv in pv_data:
+        print(vars(pv))
+        break
+    
     return render_template('experiment_detail.html', 
                          experiment=experiment, 
                          pv_data=pv_data)
@@ -148,19 +162,49 @@ def edit_experiment(exp_id):
 @bp.route('/add-experiment', methods=['GET', 'POST'])
 def add_experiment():
     if request.method == 'POST':
-        experiment = Experiment(
-            description=request.form.get('description'),
-            source_mode=request.form.get('source_mode'),
-            beam_mode=request.form.get('beam_mode'),
-            machine_mode=request.form.get('machine_mode'),
-            ion_type=request.form.get('ion_type'),
-            charge_state=request.form.get('charge_state'),
-            beam_energy=request.form.get('beam_energy'),
-            note=request.form.get('note')
-        )
-        db.session.add(experiment)
-        db.session.commit()
-        return redirect(url_for('api.experiment_list'))
+        try:
+            print("\n=== Adding New Experiment ===")
+            print("Form data:", request.form)
+            
+            # description은 필수 필드
+            description = request.form.get('description')
+            if not description:
+                raise ValueError("Description is required")
+
+            # 데이터 타입 변환 추가
+            charge_state = request.form.get('charge_state', '')
+            beam_energy = request.form.get('beam_energy', '')
+            
+            # 숫자 필드 변환 시 빈 문자열 리
+            charge_state_value = int(charge_state) if charge_state.strip() else None
+            beam_energy_value = float(beam_energy) if beam_energy.strip() else None
+            
+            print(f"Converted values - charge_state: {charge_state_value}, beam_energy: {beam_energy_value}")
+            
+            experiment = Experiment(
+                description=description,
+                source_mode=request.form.get('source_mode'),
+                beam_mode=request.form.get('beam_mode'),
+                machine_mode=request.form.get('machine_mode'),
+                ion_type=request.form.get('ion_type'),
+                charge_state=charge_state_value,
+                beam_energy=beam_energy_value,
+                note=request.form.get('note')
+            )
+            
+            print("Created experiment object:", experiment)
+            db.session.add(experiment)
+            db.session.commit()
+            print("Successfully saved experiment")
+            
+            return redirect(url_for('api.experiment_list'))
+            
+        except Exception as e:
+            print(f"Error adding experiment: {str(e)}")
+            db.session.rollback()
+            flash(str(e), 'error')
+            return render_template('add_experiment.html'), 400
+            
     return render_template('add_experiment.html')
 
 @bp.route("/pv-list")
@@ -211,9 +255,9 @@ def update_pv_api(pv_id):
         }
         
         try:
-            if field in numeric_fields and value not in [None, '']:
+            if field in numeric_fields and value not in [None, '', '-']:
                 value = numeric_fields[field](value)
-            elif value == '':
+            elif value == '' or value == '-':
                 value = None
         except ValueError:
             return jsonify({
@@ -227,7 +271,6 @@ def update_pv_api(pv_id):
         
         db.session.commit()
         
-        # 응답에 업데이트된 값과 포맷된 날짜 포함
         return jsonify({
             'status': 'success',
             'message': 'PV updated successfully',
@@ -246,38 +289,54 @@ def update_pv_api(pv_id):
 @bp.route('/update-multiple-pvs', methods=['POST'])
 def update_multiple_pvs():
     try:
+        print("\n=== Starting PV Update Process ===")
         changes = request.get_json()
-        print("Received changes:", changes)  # 디버깅용 로그
-        
+        print(f"Received changes: {changes}")
+
+        if db.session.is_active:
+            db.session.rollback()
+
         for pv_id, fields in changes.items():
-            pv = PVDataset.query.get(int(pv_id))
-            if pv:
-                for field, value in fields.items():
-                    if hasattr(pv, field):
-                        # 필드 타입에 따른 값 변환
-                        if field in ['set_value', 'HH', 'High', 'Low', 'LL', 'error_rate', 'distance']:
-                            try:
-                                setattr(pv, field, float(value) if value is not None else None)
-                            except (ValueError, TypeError):
-                                setattr(pv, field, None)
-                        elif field == 'mode':
-                            try:
-                                setattr(pv, field, int(value) if value is not None else None)
-                            except (ValueError, TypeError):
-                                setattr(pv, field, None)
-                        else:
-                            setattr(pv, field, value)
-                
-                pv.last_updated = datetime.now(pytz.timezone('Asia/Seoul'))
-        
+            print(f"\nProcessing PV ID: {pv_id}")
+            
+            # 명시적으로 UPDATE 쿼리 실행
+            for field, value in fields.items():
+                if field == 'distance':
+                    try:
+                        new_value = float(value) if value not in [None, '', '-'] else None
+                        print(f"Setting distance to: {new_value}")
+                        # 직접 UPDATE 쿼리 실행
+                        db.session.execute(
+                            text("UPDATE pv_dataset SET distance = :value WHERE id = :id"),
+                            {"value": new_value, "id": int(pv_id)}
+                        )
+                        print(f"Executed UPDATE query for distance")
+                    except (ValueError, TypeError) as e:
+                        print(f"Error converting distance value: {e}")
+                        continue
+
+            # last_updated 업데이트
+            db.session.execute(
+                text("UPDATE pv_dataset SET last_updated = :now WHERE id = :id"),
+                {"now": datetime.now(pytz.timezone('Asia/Seoul')), "id": int(pv_id)}
+            )
+
+        print("\nCommitting changes to database...")
         db.session.commit()
+
+        # 저장 후 확인
+        for pv_id, fields in changes.items():
+            pv = db.session.query(PVDataset).get(int(pv_id))
+            print(f"After commit - PV {pv_id} attributes: {vars(pv)}")
+
         return jsonify({
             'status': 'success',
             'message': 'Changes saved successfully'
         })
+
     except Exception as e:
+        print(f"\nError occurred: {str(e)}")
         db.session.rollback()
-        print("Error saving changes:", str(e))  # 디버깅용 로그
         return jsonify({
             'status': 'error',
             'message': str(e)
@@ -287,31 +346,36 @@ def update_multiple_pvs():
 def add_pv():
     try:
         data = request.json
-        korea_tz = pytz.timezone('Asia/Seoul')
+        print("Received PV data:", data)
         
-        new_pv = PVDataset(
-            experiment_id=data.get('experiment_id'),
-            set_pv_name=data.get('set_pv_name'),
-            distance=data.get('distance'),
-            set_value=data.get('set_value'),
-            readback_pv_name=data.get('readback_pv_name'),
-            state='Pending',
-            last_updated=datetime.now(korea_tz),
-            HH=data.get('HH'),
-            High=data.get('High'),
-            Low=data.get('Low'),
-            LL=data.get('LL'),
-            error_rate=data.get('error_rate'),
-            mode=data.get('mode')
-        )
+        new_pv = PVDataset()
+        new_pv.experiment_id = data.get('experiment_id')
+        new_pv.set_pv_name = data.get('set_pv_name')
+        new_pv.distance = float(data.get('distance')) if data.get('distance') not in [None, '', '-'] else None
+        new_pv.set_value = float(data.get('set_value')) if data.get('set_value') not in [None, '', '-'] else None
+        new_pv.readback_pv_name = data.get('readback_pv_name')
+        new_pv.HH = float(data.get('HH')) if data.get('HH') not in [None, '', '-'] else None
+        new_pv.High = float(data.get('High')) if data.get('High') not in [None, '', '-'] else None
+        new_pv.Low = float(data.get('Low')) if data.get('Low') not in [None, '', '-'] else None
+        new_pv.LL = float(data.get('LL')) if data.get('LL') not in [None, '', '-'] else None
+        new_pv.error_rate = float(data.get('error_rate')) if data.get('error_rate') not in [None, '', '-'] else None
+        new_pv.mode = int(data.get('mode')) if data.get('mode') not in [None, '', '-'] else None
+        
+        # 필수 필드 설정
+        new_pv.state = 'Pending'  # 기본값 설정
+        new_pv.last_updated = datetime.now(pytz.timezone('Asia/Seoul'))
         
         db.session.add(new_pv)
         db.session.commit()
         
         return jsonify({'status': 'success'})
     except Exception as e:
+        print(f"Error adding PV: {str(e)}")
         db.session.rollback()
-        return jsonify({'status': 'error', 'message': str(e)}), 400
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
 
 @bp.route('/experiments/<int:exp_id>/copy', methods=['POST'])
 def copy_experiment(exp_id):
@@ -451,3 +515,4 @@ def check_pv_value():
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
+

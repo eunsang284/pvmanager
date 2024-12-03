@@ -61,15 +61,65 @@
     .submit-button:hover, .cancel-button:hover {
         opacity: 0.9;
     }
+
+    .form-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+    }
+
+    .mode-group {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+    }
 </style>
 
 <div class="form-container">
     <h1>Add New Experiment</h1>
-    <form method="POST">
+    <form method="POST" action="{{ url_for('api.add_experiment') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
         <div class="form-group">
             <label for="description">Experiment Description:</label>
             <textarea name="description" id="description" required></textarea>
         </div>
+
+        <div class="mode-group">
+            <div class="form-group">
+                <label for="source_mode">Source Mode:</label>
+                <select name="source_mode" id="source_mode">
+                    <option value="">Select Source Mode</option>
+                    {% for i in range(10) %}
+                    <option value="S{{ i }}">S{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="beam_mode">Beam Mode:</label>
+                <select name="beam_mode" id="beam_mode">
+                    <option value="">Select Beam Mode</option>
+                    {% for i in range(10) %}
+                    <option value="B{{ i }}">B{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="machine_mode">Machine Mode:</label>
+                <select name="machine_mode" id="machine_mode">
+                    <option value="">Select Machine Mode</option>
+                    {% for i in range(10) %}
+                    <option value="M{{ i }}">M{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
         <div class="button-group">
             <a href="{{ url_for('api.experiment_list') }}" class="cancel-button">Cancel</a>
             <button type="submit" class="submit-button">Create Experiment</button>

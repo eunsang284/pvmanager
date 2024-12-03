@@ -1,12 +1,6 @@
 from flask import Flask, redirect
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect  # 추가
 import os
-
-db = SQLAlchemy()
-migrate = Migrate()
-csrf = CSRFProtect()  # 추가
+from .extensions import db, migrate, csrf
 
 def create_app():
     app = Flask(__name__)
@@ -15,24 +9,26 @@ def create_app():
     basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     dbpath = os.path.join(basedir, 'instance', 'app.db')
     
-    # 설정
-    app.config['SECRET_KEY'] = 'your-secret-key'
+    # 기본 설정
+    app.config['SECRET_KEY'] = 'your-secret-key'  # CSRF 보호를 위해 필요
+    
+    # 데이터베이스 설정
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{dbpath}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-    # 데이터베이스 초기화
+    app.config['SQLALCHEMY_ECHO'] = True  # SQL 쿼리 로깅 활성화
+    
+    # 확장 초기화
     db.init_app(app)
     migrate.init_app(app, db)
-    csrf.init_app(app)  # 추가
+    csrf.init_app(app)
     
     # Blueprint 등록
-    from app.routes import bp as api_bp
-    app.register_blueprint(api_bp, url_prefix='/app2')
+    from app.routes import bp
+    app.register_blueprint(bp, url_prefix='/app2')
     
-    # /app2 URL에 대한 리다이렉션 추가
-    @app.route('/app2')
-    @app.route('/app2/')
+    # 전역 라우트 추가
+    @app.route('/')
     def index():
         return redirect('/app2/experiments')
-
+    
     return app

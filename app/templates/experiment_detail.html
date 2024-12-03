@@ -63,7 +63,7 @@
     </div>
 
     <div class="save-changes-container">
-        <button class="button save-all-button" onclick="saveAllChanges()" style="display: none;">Save All Changes</button>
+        <button class="button save-all-button" style="display: none;" onclick="PVManager.saveAllChanges()">Save All Changes</button>
     </div>
 
     <!-- PV 추가 폼 -->
@@ -124,7 +124,6 @@
             <div class="modal-footer">
                 <button class="button cancel-button" onclick="ExperimentManager.closeSaveAsDialog()">Cancel</button>
                 <button class="button save-button" onclick="ExperimentManager.saveAsNewExperiment()">Save</button>
-                <button class="save-all-button" style="display: none;" onclick="PVManager.saveAllChanges()">Save All Changes</button>
             </div>
         </div>
     </div>
@@ -151,6 +150,60 @@
                 }
             });
         });
+
+        // Add PV 버튼 이벤트 리스너
+        const addPvButton = document.querySelector('.add-pv-button-inline');
+        if (addPvButton && !addPvButton.hasListener) {  // 리스너가 없는 경우에만 추가
+            addPvButton.hasListener = true;  // 리스너 추가 표시
+            addPvButton.addEventListener('click', async function() {
+                try {
+                    // 폼 데이터 수집
+                    const formData = {
+                        experiment_id: {{ experiment.id }},
+                        set_pv_name: document.getElementById('new-set-pv-name').value,
+                        distance: parseFloat(document.getElementById('new-distance').value) || null,
+                        set_value: parseFloat(document.getElementById('new-set-value').value) || null,
+                        readback_pv_name: document.getElementById('new-readback-pv-name').value,
+                        error_rate: parseFloat(document.getElementById('new-error-rate').value) || null,
+                        HH: parseFloat(document.getElementById('new-HH').value) || null,
+                        High: parseFloat(document.getElementById('new-High').value) || null,
+                        Low: parseFloat(document.getElementById('new-Low').value) || null,
+                        LL: parseFloat(document.getElementById('new-LL').value) || null,
+                        mode: parseInt(document.getElementById('new-mode').value) || null
+                    };
+
+                    // 필수 필드 검증
+                    if (!formData.set_pv_name) {
+                        throw new Error('Set PV Name is required');
+                    }
+
+                    console.log('Adding new PV:', formData);  // 디버깅용
+
+                    // 서버에 데이터 전송
+                    const response = await fetch('/app2/add-pv', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Failed to add PV');
+                    }
+
+                    // 성공 시 페이지 새로고침
+                    window.location.reload();
+
+                } catch (error) {
+                    console.error('Error adding PV:', error);
+                    alert(error.message || 'Failed to add PV');
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

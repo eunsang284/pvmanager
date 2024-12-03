@@ -1,0 +1,32 @@
+function deleteExperiment(expId) {
+    if (confirm('Are you sure you want to delete this experiment?')) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        fetch(`/app2/experiments/${expId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'same-origin'
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to delete experiment');
+            }
+            return data;
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                throw new Error(data.message || 'Failed to delete experiment');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(error.message);
+        });
+    }
+} 

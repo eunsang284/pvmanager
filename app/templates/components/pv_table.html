@@ -30,7 +30,7 @@
         {% for pv in pv_data %}
         <tr data-pv-id="{{ pv.id }}" data-mode="{{ pv.mode }}">
             <td class="editable" data-field="set_pv_name">{{ pv.set_pv_name }}</td>
-            <td class="editable" data-field="distance">{{ pv.distance or '-' }}</td>
+            <td class="editable" data-field="distance">{{ pv.distance if pv.distance is not none else '-' }}</td>
             <!-- Set Value Control -->
             <td class="editable" data-field="set_value">{{ pv.set_value }}</td>
             <td class="monitor-cell" data-field="set_value_current">-</td>
@@ -38,7 +38,7 @@
             <!-- Readback Control -->
             <td class="editable" data-field="readback_pv_name">{{ pv.readback_pv_name }}</td>
             <td class="monitor-cell" data-field="rb_value">-</td>
-            <td class="state-cell" data-field="state">-</td>
+            <td class="state-cell" data-field="state">{{ pv.state }}</td>
             <!-- Error Rate & Limits -->
             <td class="editable" data-field="error_rate">{{ pv.error_rate }}</td>
             <td class="editable" data-field="HH">{{ pv.HH }}</td>
